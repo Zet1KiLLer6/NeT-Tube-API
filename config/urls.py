@@ -24,7 +24,7 @@ from django.conf import settings
 
 schema_view = get_schema_view(
    openapi.Info(
-      title='netflix API',
+      title='NeT Tube API',
       default_version='v1',
       description='Best platform for series and movies',
       contact=openapi.Contact(email='contact@snippets.local'),
