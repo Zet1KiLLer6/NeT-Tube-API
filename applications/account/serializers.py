@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from applications.account.tasks import celery_send_activation_code
 
@@ -28,8 +29,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True, min_length=6)
-    new_password_confirm = serializers.CharField(required=True, min_length=6)
+    new_password = serializers.CharField(required=True, min_length=8)
+    new_password_confirm = serializers.CharField(required=True, min_length=8)
 
     def validate_old_password(self, password):
         request = self.context.get('request')
@@ -54,3 +55,29 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.save(update_fields=('password'))
 
 
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+    def send_code(self):
+        user = get_object_or_404(User, email=self.validated_data.get('email'))
+        user.create_activation_code()
+        celery_send_activation_code.delay(user.email, user.code)
+
+
+class ForgotPasswordConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    code = serializers.CharField(required=True)
+    new_password = serializers.CharField(min_length=8, required=True)
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        code = attrs.get('code')
+        user = get_object_or_404(User, email=email, code=code)
+        attrs['user'] = user
+        return attrs
+
+    def set_new_password(self):
+        password = self.validated_data('new_password')
+        user = self.validated_data.get('user')
+        user.set_password(password)
+        user.save()
