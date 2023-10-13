@@ -39,9 +39,10 @@ class CustomUser(AbstractUser):
     code = models.CharField(max_length=40, blank=True)
     username = None
     is_active = models.BooleanField(default=False)
-    birth_date = models.DateField()
+    # birth_date = models.DateField()
 
-    USERNAME_FIELD ='email'
+
+    USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
     objects = CustomUserManager()
 
@@ -50,6 +51,6 @@ class CustomUser(AbstractUser):
 
     def create_activation_code(self):
         import uuid
-        activation_code =str(uuid.uuid4())
+        activation_code = str(uuid.uuid4())
         self.code = activation_code
         self.save()

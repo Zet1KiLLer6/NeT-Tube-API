@@ -150,7 +150,8 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=14),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=180)
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=180),
+    "USER_ID_FIELD": "email"
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -162,3 +163,7 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 
 CELERY_BROKER_URL ='redis://127.0.0.1:6379/0'
 CELERY_BROKER_TRANSPORT ='redis'
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000'
+]
