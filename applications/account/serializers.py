@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from applications.account.tasks import celery_send_activation_code
+from applications.account.tasks import celery_send_activation_code, celery_send_forgot_password_code
 
 User = get_user_model()
 
@@ -36,7 +36,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         request = self.context.get('request')
         user = request.user
         if not user.check_password(password):
-            raise serializers.ValidationError('Старый пароль неверный!')
+            raise serializers.ValidationError('Неверный пароль!')
         return password
 
     def validate(self, attrs):
@@ -47,12 +47,12 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError('Данные пароли не совпадают!')
         return attrs
 
-    def set_new_password(self, new_password):
+    def set_new_password(self):
         request = self.context.get('request')
         user = request.user
         password = self._validated_data.get('new_password')
         user.set_password(password)
-        user.save(update_fields=('password'))
+        user.save(update_fields=(['password']))
 
 
 class ForgotPasswordSerializer(serializers.Serializer):
@@ -61,23 +61,37 @@ class ForgotPasswordSerializer(serializers.Serializer):
     def send_code(self):
         user = get_object_or_404(User, email=self.validated_data.get('email'))
         user.create_activation_code()
-        celery_send_activation_code.delay(user.email, user.code)
+        celery_send_forgot_password_code.delay(user.email, user.code)
 
 
 class ForgotPasswordConfirmSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
     code = serializers.CharField(required=True)
     new_password = serializers.CharField(min_length=8, required=True)
+    new_password_confirm = serializers.CharField(min_length=8, required=True)
+
+    @staticmethod
+    def validate_code(code):
+        if not User.objects.filter(code=code).exists():
+            raise serializers.ValidationError('Неверный код')
+        return code
 
     def validate(self, attrs):
+        p1 = attrs.get('new_password')
+        p2 = attrs.get('new_password_confirm')
+
         email = attrs.get('email')
         code = attrs.get('code')
-        user = get_object_or_404(User, email=email, code=code)
+        user = get_object_or_404(User, code=code)
         attrs['user'] = user
+
+        if p1 != p2:
+            raise serializers.ValidationError('Данные пароли не совпадают!')
         return attrs
 
     def set_new_password(self):
-        password = self.validated_data('new_password')
-        user = self.validated_data.get('user')
+        code = self.validated_data.get('code')
+        password = self.validated_data.get('new_password')
+        user = User.objects.get(code=code)
         user.set_password(password)
-        user.save()
+        user.code = ''
+        user.save(update_fields=['password', 'code'])

@@ -6,5 +6,5 @@ def celery_send_activation_code(email, code):
     send_activation_code(email, code)
 
 @app.task
-def celecry_send_forgot_password_code(email, code):
+def celery_send_forgot_password_code(email, code):
     send_forgot_password_code(email, code)
