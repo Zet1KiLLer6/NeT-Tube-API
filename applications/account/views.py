@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+
 from applications.account.serializers import *
 
 User = get_user_model()
@@ -44,7 +45,7 @@ class ForgotPasswordAPIView(APIView):
         return Response('Код активации был отправлен вам на почту!')
 
 
-class ForgotPasswordAPIView(APIView):
+class ForgotPasswordConfirmAPIView(APIView):
     def post(self, request):
         serializer = ForgotPasswordConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
